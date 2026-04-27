@@ -63,7 +63,7 @@ export class GifService {
       map((items) => GifMapper.mapGiphyItemsToGifArray(items)),
       // Para manejar el historial de búsqueda, con tap  se usa para ejecutar efectos secundarios en un observable sin alterar el valor emitido, nos permite actualizar this.searchHistory
       tap( items => {
-        // update toma el estado actual de searchHistory y devuelve uno nuevo
+        // update toma el estado actual (...history) de searchHistory y devuelve uno nuevo
         this.searchHistory.update( history => ({
           ...history,
           [query.toLowerCase()]: items,
