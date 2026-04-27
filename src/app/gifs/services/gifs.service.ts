@@ -4,6 +4,7 @@ import { environment } from '@environments/environment';
 import type { GiphyResponse } from '../interfaces/giphy.interface';
 import { Gif } from '../interfaces/gif.interface';
 import { GifMapper } from '../mapper/gifs.mapper';
+import { map } from 'rxjs';
 
 @Injectable({providedIn: 'root'})
 export class GifService {
@@ -36,5 +37,30 @@ export class GifService {
       this.trendingGifsLoading.set(false);
     });
 
+  }
+
+  searchGifs(query:string) {
+    // Creamos la petición Http del objeto HttpClient, pasando la variable de entorno con
+    // la Url base, añadiendo la sección, seguido de los parámetros de la url de la API.
+    // Devolvemos la propia petición HTTP, devolviendo un Observable
+    return this.http.get<GiphyResponse>(`${environment.giphyUrl}/gifs/search`, {
+      params: {
+        api_key: environment.gifsApiKey,
+        limit: 25,
+        q: query,
+      },
+      // Con el operador pipe podemos encadenar funcionamientos de los Observable y así devolver datos determinados
+    }).pipe(
+      // Con map, podemos iterar cada elemento de la respuesta y obtener los datos que necesitemos
+      map( ({ data }) => data),
+      // Pasamos todos los items por el mapper, para obtener todos los objetos tal cual hemos diseñado en el mapper
+      map((items) => GifMapper.mapGiphyItemsToGifArray(items))
+      // TODO: Manejar Historial
+    );
+
+    // .subscribe((resp) => {
+    //   const gifs = GifMapper.mapGiphyItemsToGifArray(resp.data);
+    //   console.log({ search: resp });
+    // });
   }
 }
