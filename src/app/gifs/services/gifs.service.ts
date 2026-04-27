@@ -1,10 +1,11 @@
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, signal } from '@angular/core';
+
 import { environment } from '@environments/environment';
 import type { GiphyResponse } from '../interfaces/giphy.interface';
 import { Gif } from '../interfaces/gif.interface';
 import { GifMapper } from '../mapper/gifs.mapper';
-import { map } from 'rxjs';
+import { map, tap } from 'rxjs';
 
 @Injectable({providedIn: 'root'})
 export class GifService {
@@ -15,6 +16,11 @@ export class GifService {
   trendingGifs = signal<Gif[]>([]);
   // Propiedad para saber si estan cargando los gifs
   trendingGifsLoading = signal(true);
+
+  // Propiedad para almacenar nuestro historial de búsqueda
+  searchHistory = signal<Record<string, Gif[]>>({})
+  // Cada vez que searchHistory cambie, automáticamente se va a computar en searchHistoryKeys, actualizando su listado
+  searchHistoryKeys = computed(() => Object.keys(this.searchHistory()))
 
   constructor() {
     this.loadTrendingGifs();
@@ -54,8 +60,15 @@ export class GifService {
       // Con map, podemos iterar cada elemento de la respuesta y obtener los datos que necesitemos
       map( ({ data }) => data),
       // Pasamos todos los items por el mapper, para obtener todos los objetos tal cual hemos diseñado en el mapper
-      map((items) => GifMapper.mapGiphyItemsToGifArray(items))
-      // TODO: Manejar Historial
+      map((items) => GifMapper.mapGiphyItemsToGifArray(items)),
+      // Para manejar el historial de búsqueda, con tap  se usa para ejecutar efectos secundarios en un observable sin alterar el valor emitido, nos permite actualizar this.searchHistory
+      tap( items => {
+        // update toma el estado actual de searchHistory y devuelve uno nuevo
+        this.searchHistory.update( history => ({
+          ...history,
+          [query.toLowerCase()]: items,
+        }))
+      })
     );
 
     // .subscribe((resp) => {
