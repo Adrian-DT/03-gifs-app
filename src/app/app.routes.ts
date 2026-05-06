@@ -17,6 +17,12 @@ export const routes: Routes = [
         loadComponent: () => import('./gifs/pages/search-page/search-page.component'),
       },
 
+      // Podemos incluir un segmento de URL dinámico mediante los parámetros que mandemos con palabras clave :query.
+      {
+        path: 'history/:query',
+        loadComponent: () => import('./gifs/pages/gif-history/gif-history.component'),
+      },
+
       {
         path: '**',
         redirectTo: 'trending'

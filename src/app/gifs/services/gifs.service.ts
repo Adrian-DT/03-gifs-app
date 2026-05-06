@@ -1,11 +1,26 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { environment } from '@environments/environment';
 import type { GiphyResponse } from '../interfaces/giphy.interface';
 import { Gif } from '../interfaces/gif.interface';
 import { GifMapper } from '../mapper/gifs.mapper';
-import { map, tap } from 'rxjs';
+import { map, Observable, tap } from 'rxjs';
+
+// Constante para almacenar la palabra clave utilizada para almacenar y obtener del localStorage
+const GIF_KEY = 'gifs'
+
+
+// Función para cargar el localStorage
+const loadFromLocalStorage = () => {
+  // Obtenemos la palabra clave con la que almacenamos ese localStorage
+  const gifsFromLocalStorage = localStorage.getItem(GIF_KEY) ?? '{}';
+  // Parseamos a JSON lo obtenido del localStorage
+  const gifs = JSON.parse( gifsFromLocalStorage );
+
+  return gifs;
+}
+
 
 @Injectable({providedIn: 'root'})
 export class GifService {
@@ -17,14 +32,21 @@ export class GifService {
   // Propiedad para saber si estan cargando los gifs
   trendingGifsLoading = signal(true);
 
-  // Propiedad para almacenar nuestro historial de búsqueda
-  searchHistory = signal<Record<string, Gif[]>>({})
+  // Propiedad para almacenar nuestro historial de búsqueda, cargando del localStorage en caso de que exista algo
+  searchHistory = signal<Record<string, Gif[]>>(loadFromLocalStorage())
   // Cada vez que searchHistory cambie, automáticamente se va a computar en searchHistoryKeys, actualizando su listado
   searchHistoryKeys = computed(() => Object.keys(this.searchHistory()))
 
   constructor() {
     this.loadTrendingGifs();
   }
+
+  // Efecto para almacenar en el local storage como strings, el historial de búsqueda
+  saveGifsToLocalStorage = effect(() => {
+    // Cada vez que el searchHistory cambie (es un signal), el efecto se ejecutará y se almacenará en el local storage
+    const historyString = JSON.stringify(this.searchHistory());
+    localStorage.setItem(GIF_KEY, historyString)
+  })
 
   loadTrendingGifs() {
     // Creamos la petición Http del objeto HttpClient, pasando la variable de entorno con
@@ -45,7 +67,7 @@ export class GifService {
 
   }
 
-  searchGifs(query:string) {
+  searchGifs(query:string): Observable<Gif[]> {
     // Creamos la petición Http del objeto HttpClient, pasando la variable de entorno con
     // la Url base, añadiendo la sección, seguido de los parámetros de la url de la API.
     // Devolvemos la propia petición HTTP, devolviendo un Observable
@@ -75,5 +97,10 @@ export class GifService {
     //   const gifs = GifMapper.mapGiphyItemsToGifArray(resp.data);
     //   console.log({ search: resp });
     // });
+  }
+
+  // Método para devolver el historial de búsqueda
+  getHistoryGifs( query: string ): Gif[] {
+    return this.searchHistory()[query] ?? [];
   }
 }
