@@ -5,12 +5,16 @@
 
 
 
-
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-5">
-
+<!-- Escuchamos el comportamiento del scroll mediante la fucnión que hemos creado onScroll
+  Utilizamos la referencia #groupDiv para controlar el scroll -->
+<div class="h-screen overflow-y-scroll grid grid-cols-2 md:grid-cols-4 gap-4 pt-5"
+  (scroll)="onScroll($event)"
+  #groupDiv
+>
+  <!-- Recorremos el grupo obtenido de la API mediante la propiedad computada trendingGifGroup, del GifService -->
   @for (group of gifService.trendingGifGroup(); track $index) {
     <div class="grid gap-4">
-
+      <!-- Recorremos internamente los arrays que hay dentro del array del gif service -->
       @for (gif of group; track gif.id) {
         <div>
             <img
