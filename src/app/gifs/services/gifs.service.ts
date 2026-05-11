@@ -32,6 +32,19 @@ export class GifService {
   // Propiedad para saber si estan cargando los gifs
   trendingGifsLoading = signal(true);
 
+  // Propiedad computada para generar grupos de 3 gifs en array, para el diseño Masonry
+  trendingGifGroup = computed<Gif[][]>(()=> {
+    const groups = [];
+
+    // Recorremos el bucle for de 3 en 3
+    for(let i = 0; i < this.trendingGifs().length; i+=3) {
+      // Añadiomos las 3 posiciones desde el valor de i
+      groups.push(this.trendingGifs().slice(i, i + 3))
+    }
+    console.log(groups);
+    return groups;
+  })
+
   // Propiedad para almacenar nuestro historial de búsqueda, cargando del localStorage en caso de que exista algo
   searchHistory = signal<Record<string, Gif[]>>(loadFromLocalStorage())
   // Cada vez que searchHistory cambie, automáticamente se va a computar en searchHistoryKeys, actualizando su listado
