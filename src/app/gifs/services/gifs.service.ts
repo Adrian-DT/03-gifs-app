@@ -30,7 +30,9 @@ export class GifService {
   // Propiedad para almacenar el estado de trending
   trendingGifs = signal<Gif[]>([]);
   // Propiedad para saber si estan cargando los gifs
-  trendingGifsLoading = signal(true);
+  trendingGifsLoading = signal(false);
+  // Creamos una propiedad privada, que será una signal porque irá cambiando, iniciamos con la página 0, para controlar el número de páginas cargadas para el scroll infinito de la API
+  private trendingPage = signal(0);
 
   // Propiedad computada para generar grupos de 3 gifs en array, para el diseño Masonry
   trendingGifGroup = computed<Gif[][]>(()=> {
@@ -41,7 +43,7 @@ export class GifService {
       // Añadiomos las 3 posiciones desde el valor de i
       groups.push(this.trendingGifs().slice(i, i + 3))
     }
-    console.log(groups);
+    // console.log(groups);
     return groups;
   })
 
@@ -62,18 +64,29 @@ export class GifService {
   })
 
   loadTrendingGifs() {
+
+    // Controlamos que solo haya una petición lanzada a la API, si ya existe, salimos de la función con return
+    if (this.trendingGifsLoading()) return;
+
+    // Colocamos el set en true para que no vuelva a entrar y entre en el return anterior, más abajo cuando hacemos el mapper, lo colocaremos en set false
+    this.trendingGifsLoading.set(true);
+
     // Creamos la petición Http del objeto HttpClient, pasando la variable de entorno con
     // la Url base, añadiendo la sección, seguido de los parámetros de la url de la API.
     this.http.get<GiphyResponse>(`${environment.giphyUrl}/gifs/trending`, {
       params: {
         api_key: environment.gifsApiKey,
         limit: 20,
+        offset: this.trendingPage() * 20, // Colocamos el offset de la petición, los resultados obtenidos son de 20 en 20
       }
     }).subscribe( (resp) => {
       // console.log({ resp });
       const gifs = GifMapper.mapGiphyItemsToGifArray(resp.data);
-      console.log({gifs});
-      this.trendingGifs.set(gifs);
+      // console.log({gifs});
+      // Con update, actualizamos el trendingGifs con los nuevos obtenidos del servicio API
+      this.trendingGifs.update( currentGifs => [ ...currentGifs, ...gifs ]);
+      // Aumentamos la página de gifs para cargar los siguientes 20
+      this.trendingPage.update(page => page + 1 );
       // Modificamos la propiedad que indica si estan cargandose los gifs a false, porque ya terminamos de cargar
       this.trendingGifsLoading.set(false);
     });
@@ -99,10 +112,7 @@ export class GifService {
       // Para manejar el historial de búsqueda, con tap  se usa para ejecutar efectos secundarios en un observable sin alterar el valor emitido, nos permite actualizar this.searchHistory
       tap( items => {
         // update toma el estado actual (...history) de searchHistory y devuelve uno nuevo
-        this.searchHistory.update( history => ({
-          ...history,
-          [query.toLowerCase()]: items,
-        }))
+        this.searchHistory.update( history => ({ ...history, [query.toLowerCase()]: items,}))
       })
     );
 
